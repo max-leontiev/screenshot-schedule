@@ -25,8 +25,8 @@ async function getCurrentTab() {
 async function getBoundingRectAndTab() {
   const curTab = await getCurrentTab()
   if (!scheduleURLs.has(curTab.url)) return
-  console.log("we are on the right page") // DEBUG
-  const boundingRectData = await browser.scripting.executeScript({
+  // console.log("we are on the right page") // DEBUG
+  const injectionResults = await browser.scripting.executeScript({
     target: {
       tabId: curTab.id,
     },
@@ -34,37 +34,41 @@ async function getBoundingRectAndTab() {
       const docElement = document.documentElement
       const iframe = document.getElementsByTagName("iframe")[0]
       if (iframe) {
+        const term = iframe.contentDocument.getElementById("DERIVED_REGFRM1_SSR_STDNTKEY_DESCR$11$")
+          .innerText
+          .split("|")[0]
+          .slice(0, -1) // assume the following format: "Winter Term 2024 | Undergraduate | University of Alberta")
         const table = iframe.contentDocument.getElementById("zssclasssched")
         return JSON.stringify({
-          table: table.getBoundingClientRect(),
+          document: docElement.getBoundingClientRect(),
           iframe: iframe.getBoundingClientRect(),
-          document: docElement.getBoundingClientRect()
+          table: table.getBoundingClientRect(),
+          term: term
         })
       }
     }
   }).then((results) => JSON.parse(results[0].result))
-  // TODO: make it understand fall/winter/spring/summer terms
 
   // do a bunch of simple math to ensure that entire visible portion of the table is captured
-  const minX = boundingRectData.document.x
-  const maxX = boundingRectData.document.x + boundingRectData.document.width
-  const minY = boundingRectData.document.y
-  const maxY = boundingRectData.document.y + boundingRectData.document.height
+  const minX = injectionResults.document.x
+  const maxX = injectionResults.document.x + injectionResults.document.width
+  const minY = injectionResults.document.y
+  const maxY = injectionResults.document.y + injectionResults.document.height
 
-  const absX = boundingRectData.table.x + boundingRectData.iframe.x
-  const absY = boundingRectData.table.y + boundingRectData.iframe.y
+  const absX = injectionResults.table.x + injectionResults.iframe.x
+  const absY = injectionResults.table.y + injectionResults.iframe.y
   const topLeft = {
     x: Math.max(minX, absX),
     y: Math.max(minY, absY)
   }
   const bottomRight = {
-    x: Math.min(maxX, absX + boundingRectData.table.width),
-    y: Math.min(maxY, absY + boundingRectData.table.height)
+    x: Math.min(maxX, absX + injectionResults.table.width),
+    y: Math.min(maxY, absY + injectionResults.table.height)
   }
   const width = bottomRight.x - topLeft.x
   const height = bottomRight.y - topLeft.y
 
-  console.log(boundingRectData, minX, maxX, minY, maxY, topLeft, bottomRight, width, height) // DEBUG
+  // console.log(injectionResults, minX, maxX, minY, maxY, topLeft, bottomRight, width, height) // DEBUG
   const rect = {
     x: topLeft.x,
     y: topLeft.y,
@@ -75,7 +79,8 @@ async function getBoundingRectAndTab() {
   browser.runtime.sendMessage({ // send message to background script so it can do the screenshot
     msgType: "screenshot",
     tab: curTab,
-    rect: rect
+    rect: rect,
+    term: injectionResults.term
   })
 }
 
@@ -83,7 +88,7 @@ document.getElementById("screenshot")
 .addEventListener("click", getBoundingRectAndTab)
 
 document.getElementById("download-btn")
-.addEventListener("click", () => browser.runtime.sendMessage({ // send message to background script so it can do the screenshot
+.addEventListener("click", () => browser.runtime.sendMessage({ // send message to background script so it can download the screenshot
   msgType: "download"
 }))
 
@@ -98,7 +103,7 @@ browser.runtime.onMessage.addListener((data) => {
 
 // enable/disable buttons depending on context every time the popup is opened
 window.addEventListener("load", async () => {
-  console.log("loaded") // DEBUG
+  // console.log("loaded") // DEBUG
   const curTab = await getCurrentTab()
   if (scheduleURLs.has(curTab.url)) { // enable screenshotting if we are on a Bear Tracks page
     document.getElementById("screenshot").disabled = false
@@ -106,16 +111,16 @@ window.addEventListener("load", async () => {
     document.getElementById("screenshot").disabled = true
   }
 
-  const sending = browser.runtime.sendMessage({
+  const sending = browser.runtime.sendMessage({ // ask background script if a screenshot was previously taken
     msgType: "checkIfImgExists"
   });
   sending.then((message) => {
     if (message.response) { // enable downloading/copying if a screenshot was previously taken
-      console.log("enabling") // DEBUG
+      // console.log("enabling") // DEBUG
       document.getElementById("download-btn").disabled = false
       document.getElementById("copy").disabled = false
     } else { // disable downloading/copying if there is no screenshot
-      console.log("disabling") // DEBUG
+      // console.log("disabling") // DEBUG
       document.getElementById("download-btn").disabled = true
       document.getElementById("copy").disabled = true
     }

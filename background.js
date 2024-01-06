@@ -20,35 +20,20 @@ function stringToFilename(string) {
     .substring(0, 200); // make sure file name isn't too long (a limit of up to 255 chars would probably be ok)
 }
 
-function getTabFilename(tab) {
-  if (tab.title) {
-    transformedTitle = stringToFilename(tab.title);
-    // console.log(transformedTitle) // DEBUG
-    if (transformedTitle) return transformedTitle + ".png";
-  }
-  if (tab.url) {
-    tabURL = new URL(tab.url);
-    transformedURL = stringToFilename(tabURL.hostname.replace(/\./g, "_")); // replace dots in hostname with underscores
-    // console.log(transformedURL) // DEBUG
-    if (transformedURL) return transformedURL + ".png";
-  }
-  return tab.id.toString() + ".png"; // fallback: just use the tabid as the filename
-}
-
 async function uriToURL(uri) {
   const blob = await (await fetch(uri)).blob();
   return URL.createObjectURL(blob);
 }
 
 let last_image = undefined
-
-async function screenshot(tab, rect) {
+async function screenshot(tab, rect, term) {
   const imgURI = await browser.tabs.captureTab(tab.id, { rect: rect });
   // console.log(imgURI) // DEBUG
   const url = await uriToURL(imgURI);
   // console.log(url) // DEBUG
   try {
-    filename = getTabFilename(tab);
+    filename = stringToFilename(term + " Schedule"); // term string should already be a valid filename, but parse it just in case
+    filename += ".png"
     // console.log(filename) // DEBUG
     last_image = {
       url: url,
@@ -57,8 +42,7 @@ async function screenshot(tab, rect) {
     browser.runtime.sendMessage({
       msgType: "enableButtons"
     })
-    console.log(last_image)
-    // browser.downloads.download({ url: url, filename: filename, saveAs: true });
+    // console.log(last_image) // DEBUG
   } catch (e) {
     console.log(e);
   }
@@ -68,7 +52,7 @@ browser.runtime.onMessage.addListener((data, sender, sendResponse) => {
   if (Object.hasOwn(data, "msgType")) {
     switch (data.msgType) {
       case "screenshot":
-        screenshot(data.tab, data.rect)
+        screenshot(data.tab, data.rect, data.term)
         break
       case "download":
         if (last_image) {
