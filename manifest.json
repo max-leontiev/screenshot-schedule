@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Screenshot Schedule",
+  "version": "1.0",
+  "description": "Screenshots your schedule.",
+  "homepage_url": "https://github.com/max-leontiev/screenshot-schedule",
+  "permissions": ["activeTab", "scripting", "downloads"],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "icons": {
+    "16": "icons/icon.svg",
+    "32": "icons/icon.svg",
+    "48": "icons/icon.svg",
+    "64": "icons/icon.svg",
+    "96": "icons/icon.svg"
+  },
+  "action": {
+    "default_icon": "icons/icon.svg",
+    "default_title": "Screenshot Schedule",
+    "default_popup": "popup/popup.html",
+    "theme_icons": [{
+      "light": "icons/iconwhite.svg",
+      "dark": "icons/icon.svg",
+      "size": 16
+    }, {
+      "light": "icons/iconwhite.svg",
+      "dark": "icons/icon.svg",
+      "size": 32
+    }]
+  },
+  "background": {
+    "scripts": ["background.js"]
+  }
+}
+
