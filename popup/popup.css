@@ -1,5 +1,5 @@
 /*
-Screenshot Schedule
+Screenshot Schedule - A Firefox extension for UAlberta students that helps you save your Bear Tracks schedule as an image.
 Copyright (C) 2024 Max Leontiev
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License 

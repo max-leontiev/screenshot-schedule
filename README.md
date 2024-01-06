@@ -1,5 +1,5 @@
 # Screenshot Schedule
-Short Description
+A Firefox extension for UAlberta students that helps you save your Bear Tracks schedule as an image.
 
 ## Usage
 
