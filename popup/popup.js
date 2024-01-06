@@ -13,13 +13,19 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see <https://www.gnu.org/licenses/>. 
 */
 
-const scheduleURL = "https://www.beartracks.ualberta.ca/psc/uahebprd/EMPLOYEE/HRMS/c/NUI_FRAMEWORK.PT_AGSTARTPAGE_NUI.GBL?CONTEXTIDPARAMS=TEMPLATE_ID%3aPTPPNAVCOL&scname=ADMN_MY_CLASSES__EXAMS&PTPPB_GROUPLET_ID=ZSS_CLASS_SCHED&CRefName=ADMN_NAVCOLL_1"
+const scheduleURLs = new Set([
+  "https://www.beartracks.ualberta.ca/psc/uahebprd/EMPLOYEE/HRMS/c/NUI_FRAMEWORK.PT_AGSTARTPAGE_NUI.GBL?CONTEXTIDPARAMS=TEMPLATE_ID%3aPTPPNAVCOL&scname=ADMN_MY_CLASSES__EXAMS&PTPPB_GROUPLET_ID=ZSS_CLASS_SCHED&CRefName=ADMN_NAVCOLL_1",
+  "https://www.beartracks.ualberta.ca/psc/uahebprd_7/EMPLOYEE/HRMS/c/NUI_FRAMEWORK.PT_AGSTARTPAGE_NUI.GBL?CONTEXTIDPARAMS=TEMPLATE_ID%3aPTPPNAVCOL&scname=ADMN_MY_CLASSES__EXAMS&PTPPB_GROUPLET_ID=ZSS_CLASS_SCHED&CRefName=ADMN_NAVCOLL_1"
+])
+
+async function getCurrentTab() {
+  return (await browser.tabs.query({active: true, lastFocusedWindow: true}))[0]
+}
 
 async function getBoundingRectAndTab() {
-  
-  const curTab = (await browser.tabs.query({active: true, lastFocusedWindow: true}))[0]
-  if (curTab.url !== scheduleURL) return
-  console.log("we are on the right page")
+  const curTab = await getCurrentTab()
+  if (!scheduleURLs.has(curTab.url)) return
+  console.log("we are on the right page") // DEBUG
   const boundingRectData = await browser.scripting.executeScript({
     target: {
       tabId: curTab.id,
@@ -38,7 +44,8 @@ async function getBoundingRectAndTab() {
     }
   }).then((results) => JSON.parse(results[0].result))
   // TODO: make it understand fall/winter/spring/summer terms
-  // do a bunch of simple math to ensure that entire visible portion of table is captured
+
+  // do a bunch of simple math to ensure that entire visible portion of the table is captured
   const minX = boundingRectData.document.x
   const maxX = boundingRectData.document.x + boundingRectData.document.width
   const minY = boundingRectData.document.y
@@ -79,4 +86,38 @@ document.getElementById("download-btn")
 .addEventListener("click", () => browser.runtime.sendMessage({ // send message to background script so it can do the screenshot
   msgType: "download"
 }))
-    
+
+browser.runtime.onMessage.addListener((data) => {
+  if (Object.hasOwn(data, "msgType")) {
+    if (data.msgType === "enableButtons") {
+      document.getElementById("download-btn").disabled = false
+      document.getElementById("copy").disabled = false
+    }
+  }
+});
+
+// enable/disable buttons depending on context every time the popup is opened
+window.addEventListener("load", async () => {
+  console.log("loaded") // DEBUG
+  const curTab = await getCurrentTab()
+  if (scheduleURLs.has(curTab.url)) { // enable screenshotting if we are on a Bear Tracks page
+    document.getElementById("screenshot").disabled = false
+  } else { // disable otherwise
+    document.getElementById("screenshot").disabled = true
+  }
+
+  const sending = browser.runtime.sendMessage({
+    msgType: "checkIfImgExists"
+  });
+  sending.then((message) => {
+    if (message.response) { // enable downloading/copying if a screenshot was previously taken
+      console.log("enabling") // DEBUG
+      document.getElementById("download-btn").disabled = false
+      document.getElementById("copy").disabled = false
+    } else { // disable downloading/copying if there is no screenshot
+      console.log("disabling") // DEBUG
+      document.getElementById("download-btn").disabled = true
+      document.getElementById("copy").disabled = true
+    }
+  }, (e) => console.error(e))
+})

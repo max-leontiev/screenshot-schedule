@@ -39,8 +39,12 @@ svg {
   height: inherit;
 }
 
-button:hover {
+button:hover:enabled {
   background-color: #255c3b;
   color: #e8f1ed;
   transition: background-color 0.3s ease-in-out;
+}
+
+button:disabled {
+  filter: grayscale(80%) brightness(0.4)
 }

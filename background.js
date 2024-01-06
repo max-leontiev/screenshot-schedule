@@ -54,6 +54,9 @@ async function screenshot(tab, rect) {
       url: url,
       filename: filename,
     }
+    browser.runtime.sendMessage({
+      msgType: "enableButtons"
+    })
     console.log(last_image)
     // browser.downloads.download({ url: url, filename: filename, saveAs: true });
   } catch (e) {
@@ -61,7 +64,7 @@ async function screenshot(tab, rect) {
   }
 }
 
-browser.runtime.onMessage.addListener((data, sender) => {
+browser.runtime.onMessage.addListener((data, sender, sendResponse) => {
   if (Object.hasOwn(data, "msgType")) {
     switch (data.msgType) {
       case "screenshot":
@@ -70,6 +73,13 @@ browser.runtime.onMessage.addListener((data, sender) => {
       case "download":
         if (last_image) {
           browser.downloads.download({ url: last_image.url, filename: last_image.filename, saveAs: true });
+        }
+        break
+      case "checkIfImgExists":
+        if (last_image) {
+          sendResponse({response: true})
+        } else {
+          sendResponse({response: false})
         }
         break
     }
