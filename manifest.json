@@ -4,7 +4,7 @@
   "version": "1.0",
   "description": "Screenshots your schedule.",
   "homepage_url": "https://github.com/max-leontiev/screenshot-schedule",
-  "permissions": ["activeTab", "scripting", "downloads"],
+  "permissions": ["activeTab", "scripting", "downloads", "clipboardWrite"],
   "host_permissions": [
     "<all_urls>"
   ],

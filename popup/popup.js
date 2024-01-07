@@ -35,11 +35,8 @@ async function getCurrentTab() {
   return (await browser.tabs.query({active: true, lastFocusedWindow: true}))[0]
 }
 
-async function getBoundingRectAndTab() {
-  const curTab = await getCurrentTab()
-  if (!scheduleURLs.has(curTab.url)) return
-  // console.log("we are on the right page") // DEBUG
-  const injectionResults = await browser.scripting.executeScript({
+async function injectScheduleLocatorScript(curTab) {
+  return browser.scripting.executeScript({
     target: {
       tabId: curTab.id,
     },
@@ -61,7 +58,9 @@ async function getBoundingRectAndTab() {
       }
     }
   }).then((results) => JSON.parse(results[0].result))
+}
 
+function getBoundingRect(injectionResults) {
   // do a bunch of simple math to ensure that entire visible portion of the table is captured
   const minX = injectionResults.document.x
   const maxX = injectionResults.document.x + injectionResults.document.width
@@ -88,6 +87,15 @@ async function getBoundingRectAndTab() {
     width: width,
     height: height
   }
+  return rect
+}
+
+async function getScreenshotData() {
+  const curTab = await getCurrentTab()
+  if (!scheduleURLs.has(curTab.url)) return
+  // console.log("we are on the right page") // DEBUG
+  const injectionResults = await injectScheduleLocatorScript(curTab)
+  const rect = getBoundingRect(injectionResults)
 
   browser.runtime.sendMessage({ // send message to background script so it can do the screenshot
     msgType: "screenshot",
@@ -99,11 +107,16 @@ async function getBoundingRectAndTab() {
 
 // Main code
 screenshotBtn
-.addEventListener("click", getBoundingRectAndTab)
+.addEventListener("click", getScreenshotData)
 
 downloadBtn
 .addEventListener("click", () => browser.runtime.sendMessage({ // send message to background script so it can download the screenshot
   msgType: "download"
+}))
+
+copyBtn
+.addEventListener("click", () => browser.runtime.sendMessage({ // send message to background script so it can copy the screenshot
+  msgType: "copy"
 }))
 
 browser.runtime.onMessage.addListener((data) => {

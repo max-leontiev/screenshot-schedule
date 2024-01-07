@@ -25,10 +25,17 @@ async function uriToURL(uri) {
   return URL.createObjectURL(blob);
 }
 
+async function dataUrlToArrayBuffer(dataUrl) {
+  const res = await fetch(dataUrl);
+  return res.arrayBuffer();
+}
+
 let last_image = undefined
 async function screenshot(tab, rect, term) {
   const imgURI = await browser.tabs.captureTab(tab.id, { rect: rect });
   // console.log(imgURI) // DEBUG
+  const arrBuffer = await dataUrlToArrayBuffer(imgURI)
+  // console.log(arrBuffer) // DEBUG
   const url = await uriToURL(imgURI);
   // console.log(url) // DEBUG
   try {
@@ -38,6 +45,7 @@ async function screenshot(tab, rect, term) {
     last_image = {
       url: url,
       filename: filename,
+      arrBuffer: arrBuffer,
     }
     browser.runtime.sendMessage({
       msgType: "screenshotTaken"
@@ -57,6 +65,11 @@ browser.runtime.onMessage.addListener((data, sender, sendResponse) => {
       case "download":
         if (last_image) {
           browser.downloads.download({ url: last_image.url, filename: last_image.filename, saveAs: true });
+        }
+        break
+      case "copy": 
+        if (last_image) {
+          browser.clipboard.setImageData(last_image.arrBuffer, "png")
         }
         break
       case "checkIfImgExists":
