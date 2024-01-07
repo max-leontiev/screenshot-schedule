@@ -13,9 +13,8 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see <https://www.gnu.org/licenses/>.
 */
 
-/* TODO: improve styling */
-
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   align-self: center;
@@ -46,7 +45,7 @@ button:hover:enabled {
 }
 
 button:disabled {
-  filter: grayscale(80%) brightness(0.4)
+  filter: grayscale(80%) brightness(0.4);
 }
 
 #screenshot-notif {
@@ -57,5 +56,5 @@ button:disabled {
 }
 
 #screenshot-notif:disabled {
-  filter: revert
+  filter: revert;
 }

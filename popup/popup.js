@@ -13,27 +13,24 @@ You should have received a copy of the GNU General Public License along with thi
 If not, see <https://www.gnu.org/licenses/>. 
 */
 
+// Constants
 const scheduleURLs = new Set([
   "https://www.beartracks.ualberta.ca/psc/uahebprd/EMPLOYEE/HRMS/c/NUI_FRAMEWORK.PT_AGSTARTPAGE_NUI.GBL?CONTEXTIDPARAMS=TEMPLATE_ID%3aPTPPNAVCOL&scname=ADMN_MY_CLASSES__EXAMS&PTPPB_GROUPLET_ID=ZSS_CLASS_SCHED&CRefName=ADMN_NAVCOLL_1",
   "https://www.beartracks.ualberta.ca/psc/uahebprd_7/EMPLOYEE/HRMS/c/NUI_FRAMEWORK.PT_AGSTARTPAGE_NUI.GBL?CONTEXTIDPARAMS=TEMPLATE_ID%3aPTPPNAVCOL&scname=ADMN_MY_CLASSES__EXAMS&PTPPB_GROUPLET_ID=ZSS_CLASS_SCHED&CRefName=ADMN_NAVCOLL_1"
 ])
-
-const screenshotNotifAnimation = [
-  { opacity: "1" },
-  { opacity: "0" },
-];
-
-const screenshotNotifTiming = {
-  duration: 1000,
-  iterations: 1,
-};
 
 const screenshotBtn = document.getElementById("screenshot")
 const screenshotNotifBtn = document.getElementById("screenshot-notif")
 const downloadBtn = document.getElementById("download")
 const copyBtn = document.getElementById("copy")
 
+const screenshotNotifAnimation = [ { opacity: "1" }, { opacity: "0" }, ];
+const screenshotNotifTiming = { duration: 1000, iterations: 1, };
 
+const enablingButtonAnimation = [ { filter: "grayscale(0%) brightness(1.0)" }, ]
+const enablingButtonTiming = { duration: 150, iterations: 1, };
+
+// Function definitions
 async function getCurrentTab() {
   return (await browser.tabs.query({active: true, lastFocusedWindow: true}))[0]
 }
@@ -100,6 +97,7 @@ async function getBoundingRectAndTab() {
   })
 }
 
+// Main code
 screenshotBtn
 .addEventListener("click", getBoundingRectAndTab)
 
@@ -111,13 +109,15 @@ downloadBtn
 browser.runtime.onMessage.addListener((data) => {
   if (Object.hasOwn(data, "msgType")) {
     if (data.msgType === "screenshotTaken") { // after a screenshot is taken, enable downloading/copying
-      downloadBtn.disabled = false
-      copyBtn.disabled = false
-      screenshotNotifBtn.style.display = 'inherit'
-      const animation = screenshotNotifBtn.animate(screenshotNotifAnimation, screenshotNotifTiming)
-      animation.onfinish = (event) => {
-        screenshotNotifBtn.style.display = 'none' 
-      }
+      screenshotNotifBtn.style.display = 'unset'
+
+      const screenshotNotifDisappearing = screenshotNotifBtn.animate(screenshotNotifAnimation, screenshotNotifTiming)
+      const downloadBtnEnabling = downloadBtn.animate(enablingButtonAnimation, enablingButtonTiming)
+      const copyBtnEnabling = copyBtn.animate(enablingButtonAnimation, enablingButtonTiming)
+      
+      screenshotNotifDisappearing.onfinish = (event) => { screenshotNotifBtn.style.display = 'none' }
+      downloadBtnEnabling.onfinish = (event) => { downloadBtn.disabled = false }
+      copyBtnEnabling.onfinish = (event) => { copyBtn.disabled = false }
     }
   }
 });
