@@ -40,7 +40,7 @@ async function screenshot(tab, rect, term) {
       filename: filename,
     }
     browser.runtime.sendMessage({
-      msgType: "enableButtons"
+      msgType: "screenshotTaken"
     })
     // console.log(last_image) // DEBUG
   } catch (e) {

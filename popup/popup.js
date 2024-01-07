@@ -18,6 +18,22 @@ const scheduleURLs = new Set([
   "https://www.beartracks.ualberta.ca/psc/uahebprd_7/EMPLOYEE/HRMS/c/NUI_FRAMEWORK.PT_AGSTARTPAGE_NUI.GBL?CONTEXTIDPARAMS=TEMPLATE_ID%3aPTPPNAVCOL&scname=ADMN_MY_CLASSES__EXAMS&PTPPB_GROUPLET_ID=ZSS_CLASS_SCHED&CRefName=ADMN_NAVCOLL_1"
 ])
 
+const screenshotNotifAnimation = [
+  { opacity: "1" },
+  { opacity: "0" },
+];
+
+const screenshotNotifTiming = {
+  duration: 1000,
+  iterations: 1,
+};
+
+const screenshotBtn = document.getElementById("screenshot")
+const screenshotNotifBtn = document.getElementById("screenshot-notif")
+const downloadBtn = document.getElementById("download")
+const copyBtn = document.getElementById("copy")
+
+
 async function getCurrentTab() {
   return (await browser.tabs.query({active: true, lastFocusedWindow: true}))[0]
 }
@@ -84,19 +100,24 @@ async function getBoundingRectAndTab() {
   })
 }
 
-document.getElementById("screenshot")
+screenshotBtn
 .addEventListener("click", getBoundingRectAndTab)
 
-document.getElementById("download-btn")
+downloadBtn
 .addEventListener("click", () => browser.runtime.sendMessage({ // send message to background script so it can download the screenshot
   msgType: "download"
 }))
 
 browser.runtime.onMessage.addListener((data) => {
   if (Object.hasOwn(data, "msgType")) {
-    if (data.msgType === "enableButtons") {
-      document.getElementById("download-btn").disabled = false
-      document.getElementById("copy").disabled = false
+    if (data.msgType === "screenshotTaken") { // after a screenshot is taken, enable downloading/copying
+      downloadBtn.disabled = false
+      copyBtn.disabled = false
+      screenshotNotifBtn.style.display = 'inherit'
+      const animation = screenshotNotifBtn.animate(screenshotNotifAnimation, screenshotNotifTiming)
+      animation.onfinish = (event) => {
+        screenshotNotifBtn.style.display = 'none' 
+      }
     }
   }
 });
@@ -106,9 +127,9 @@ window.addEventListener("load", async () => {
   // console.log("loaded") // DEBUG
   const curTab = await getCurrentTab()
   if (scheduleURLs.has(curTab.url)) { // enable screenshotting if we are on a Bear Tracks page
-    document.getElementById("screenshot").disabled = false
+    screenshotBtn.disabled = false
   } else { // disable otherwise
-    document.getElementById("screenshot").disabled = true
+    screenshotBtn.disabled = true
   }
 
   const sending = browser.runtime.sendMessage({ // ask background script if a screenshot was previously taken
@@ -117,12 +138,12 @@ window.addEventListener("load", async () => {
   sending.then((message) => {
     if (message.response) { // enable downloading/copying if a screenshot was previously taken
       // console.log("enabling") // DEBUG
-      document.getElementById("download-btn").disabled = false
-      document.getElementById("copy").disabled = false
+      downloadBtn.disabled = false
+      copyBtn.disabled = false
     } else { // disable downloading/copying if there is no screenshot
       // console.log("disabling") // DEBUG
-      document.getElementById("download-btn").disabled = true
-      document.getElementById("copy").disabled = true
+      downloadBtn.disabled = true
+      copyBtn.disabled = true
     }
   }, (e) => console.error(e))
 })

@@ -48,3 +48,14 @@ button:hover:enabled {
 button:disabled {
   filter: grayscale(80%) brightness(0.4)
 }
+
+#screenshot-notif {
+  display: none;
+  background: white;
+  position: absolute;
+  top: 0;
+}
+
+#screenshot-notif:disabled {
+  filter: revert
+}
