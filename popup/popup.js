@@ -14,10 +14,9 @@ If not, see <https://www.gnu.org/licenses/>.
 */
 
 // Constants
-const scheduleURLs = new Set([
-  'https://www.beartracks.ualberta.ca/psc/uahebprd/EMPLOYEE/HRMS/c/NUI_FRAMEWORK.PT_AGSTARTPAGE_NUI.GBL?CONTEXTIDPARAMS=TEMPLATE_ID%3aPTPPNAVCOL&scname=ADMN_MY_CLASSES__EXAMS&PTPPB_GROUPLET_ID=ZSS_CLASS_SCHED&CRefName=ADMN_NAVCOLL_1',
-  'https://www.beartracks.ualberta.ca/psc/uahebprd_7/EMPLOYEE/HRMS/c/NUI_FRAMEWORK.PT_AGSTARTPAGE_NUI.GBL?CONTEXTIDPARAMS=TEMPLATE_ID%3aPTPPNAVCOL&scname=ADMN_MY_CLASSES__EXAMS&PTPPB_GROUPLET_ID=ZSS_CLASS_SCHED&CRefName=ADMN_NAVCOLL_1',
-]);
+const scheduleURLregex = new RegExp(
+  /^https:\/\/www\.beartracks\.ualberta\.ca\/psc\/uahebprd(?:_[0-9])?\/EMPLOYEE\/HRMS\/c\/NUI_FRAMEWORK\.PT_AGSTARTPAGE_NUI\.GBL\?CONTEXTIDPARAMS=TEMPLATE_ID%3aPTPPNAVCOL&scname=ADMN_MY_CLASSES__EXAMS&PTPPB_GROUPLET_ID=ZSS_CLASS_SCHED&CRefName=ADMN_NAVCOLL_1$/
+);
 
 const screenshotBtn = document.getElementById('screenshot');
 const screenshotNotifBtn = document.getElementById('screenshot-notif');
@@ -100,8 +99,6 @@ function getBoundingRect(injectionResults) {
 
 async function getScreenshotData() {
   const curTab = await getCurrentTab();
-  if (!scheduleURLs.has(curTab.url)) return;
-  // console.log("we are on the right page") // DEBUG
   const injectionResults = await injectScheduleLocatorScript(curTab);
   const rect = getBoundingRect(injectionResults);
 
@@ -164,8 +161,8 @@ screenshotBtn.addEventListener('click', async () => {
 });
 
 downloadBtn.addEventListener('click', () => {
+  // send message to background script so it can download the screenshot
   const sending = browser.runtime.sendMessage({
-    // send message to background script so it can download the screenshot
     msgType: 'download',
   });
   sending.then(
@@ -177,8 +174,9 @@ downloadBtn.addEventListener('click', () => {
 });
 
 copyBtn.addEventListener('click', () => {
+  // send message to background script so it can copy the screenshot
   const sending = browser.runtime.sendMessage({
-    // send message to background script so it can copy the screenshot
+    
     msgType: 'copy',
   });
   sending.then(
@@ -193,27 +191,28 @@ window.addEventListener('load', async () => {
   // enable/disable buttons depending on context every time the popup is opened
   // console.log("loaded") // DEBUG
   const curTab = await getCurrentTab();
-  if (scheduleURLs.has(curTab.url)) {
-    // enable screenshotting if we are on a Bear Tracks page
+  // enable screenshotting if we are on a Bear Tracks page
+  if (curTab.url.match(scheduleURLregex)) {
+    // console.log("current page is Bear Tracks") // DEBUG
     screenshotBtn.disabled = false;
   } else {
     // disable otherwise
     screenshotBtn.disabled = true;
   }
 
+  // ask background script if a screenshot was previously taken
   const sending = browser.runtime.sendMessage({
-    // ask background script if a screenshot was previously taken
     msgType: 'checkIfImgExists',
   });
   sending.then(
     (message) => {
+      // enable downloading/copying if a screenshot was previously taken
+      // otherwise, disable downloading/copying
       if (message.response) {
-        // enable downloading/copying if a screenshot was previously taken
         // console.log("enabling") // DEBUG
         downloadBtn.disabled = false;
         copyBtn.disabled = false;
       } else {
-        // disable downloading/copying if there is no screenshot
         // console.log("disabling") // DEBUG
         downloadBtn.disabled = true;
         copyBtn.disabled = true;
