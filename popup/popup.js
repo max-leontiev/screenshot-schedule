@@ -101,12 +101,11 @@ async function getScreenshotData() {
   const injectionResults = await injectScheduleLocatorScript(curTab)
   const rect = getBoundingRect(injectionResults)
 
-  browser.runtime.sendMessage({ // send message to background script so it can do the screenshot
-    msgType: "screenshot",
+  return {
     tab: curTab,
     rect: rect,
     term: injectionResults.term
-  })
+  }
 }
 
 function animateButtonNotif(btn) {
@@ -124,7 +123,19 @@ function animateButtonNotif(btn) {
 
 // Main code
 screenshotBtn
-.addEventListener("click", getScreenshotData)
+.addEventListener("click", async () => {
+  const screenshotData = await getScreenshotData()
+  screenshotData.msgType = "screenshot"
+  browser.runtime.sendMessage(screenshotData) // send message to background script so it can do the screenshot
+  .then(() => {
+    animateButtonNotif(screenshotBtn)
+
+    const downloadBtnEnabling = downloadBtn.animate(enablingButtonAnimation, enablingButtonTiming)
+    const copyBtnEnabling = copyBtn.animate(enablingButtonAnimation, enablingButtonTiming)
+    downloadBtnEnabling.onfinish = (event) => { downloadBtn.disabled = false }
+    copyBtnEnabling.onfinish = (event) => { copyBtn.disabled = false }
+  }, (e) => console.error(e))
+})
 
 downloadBtn
 .addEventListener("click", () => {
@@ -146,21 +157,7 @@ copyBtn
   }, (e) => console.error(e))
 })
 
-browser.runtime.onMessage.addListener((data) => {
-  if (Object.hasOwn(data, "msgType")) {
-    if (data.msgType === "screenshotTaken") { // after a screenshot is taken, enable downloading/copying
-      animateButtonNotif(screenshotBtn)
-
-      const downloadBtnEnabling = downloadBtn.animate(enablingButtonAnimation, enablingButtonTiming)
-      const copyBtnEnabling = copyBtn.animate(enablingButtonAnimation, enablingButtonTiming)
-      downloadBtnEnabling.onfinish = (event) => { downloadBtn.disabled = false }
-      copyBtnEnabling.onfinish = (event) => { copyBtn.disabled = false }
-    }
-  }
-});
-
-// enable/disable buttons depending on context every time the popup is opened
-window.addEventListener("load", async () => {
+window.addEventListener("load", async () => { // enable/disable buttons depending on context every time the popup is opened
   // console.log("loaded") // DEBUG
   const curTab = await getCurrentTab()
   if (scheduleURLs.has(curTab.url)) { // enable screenshotting if we are on a Bear Tracks page

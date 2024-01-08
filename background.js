@@ -30,7 +30,7 @@ async function dataUrlToArrayBuffer(dataUrl) {
   return res.arrayBuffer();
 }
 
-let last_image = undefined
+let last_image
 async function screenshot(tab, rect, term) {
   const imgURI = await browser.tabs.captureTab(tab.id, { rect: rect });
   // console.log(imgURI) // DEBUG
@@ -47,39 +47,39 @@ async function screenshot(tab, rect, term) {
       filename: filename,
       arrBuffer: arrBuffer,
     }
-    browser.runtime.sendMessage({
-      msgType: "screenshotTaken"
-    })
     // console.log(last_image) // DEBUG
   } catch (e) {
-    console.log(e);
+    throw new Error(e) // do this so that the promise is rejected
   }
 }
 
 browser.runtime.onMessage.addListener((data, sender, sendResponse) => {
-  if (Object.hasOwn(data, "msgType")) {
-    switch (data.msgType) {
-      case "screenshot": screenshot(data.tab, data.rect, data.term); break;
-      case "download":
-        if (last_image) {
-          browser.downloads.download({ url: last_image.url, filename: last_image.filename, saveAs: true })
-          .then((downloadId) => { sendResponse() }, (error) => { console.error(error) } )
-        }
-        break
-      case "copy": 
-        if (last_image) {
-          browser.clipboard.setImageData(last_image.arrBuffer, "png")
-          .then(() => { sendResponse() }, (error) => { console.error(error) } )
-          return true
-        }
-        break
-      case "checkIfImgExists":
-        if (last_image) {
-          sendResponse({response: true})
-        } else {
-          sendResponse({response: false})
-        }
-        break
-    }
+  switch (data.msgType) {
+    case "screenshot":
+      screenshot(data.tab, data.rect, data.term)
+      .then(() => { sendResponse() }, (error) => { console.error(error) } )
+      break
+    case "download":
+      if (last_image) {
+        browser.downloads.download({ url: last_image.url, filename: last_image.filename, saveAs: true })
+        .then((downloadId) => { sendResponse() }, (error) => { console.error(error) } )
+      }
+      break
+    case "copy": 
+      if (last_image) {
+        browser.clipboard.setImageData(last_image.arrBuffer, "png")
+        .then(() => { sendResponse() }, (error) => { console.error(error) } )
+        return true
+      }
+      break
+    case "checkIfImgExists":
+      if (last_image) {
+        sendResponse({response: true})
+      } else {
+        sendResponse({response: false})
+      }
+      break
+    default:
+      throw new Error(`Invalid message data: ${data} (sent by ${sender})`)
   }
 });
