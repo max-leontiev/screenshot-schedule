@@ -16,7 +16,7 @@ If not, see <https://www.gnu.org/licenses/>.
 function stringToFilename(string) {
   return string
     .trim() // remove surrounding whitespace
-    .replace(/[^a-zA-Z0-9-_ ]/g, "") // remove any weird characters (not letter/number/dash/underscore/space)
+    .replace(/[^a-zA-Z0-9-_ ]/g, '') // remove any weird characters (not letter/number/dash/underscore/space)
     .substring(0, 200); // make sure file name isn't too long (a limit of up to 255 chars would probably be ok)
 }
 
@@ -30,56 +30,80 @@ async function dataUrlToArrayBuffer(dataUrl) {
   return res.arrayBuffer();
 }
 
-let last_image
+let last_image;
 async function screenshot(tab, rect, term) {
   const imgURI = await browser.tabs.captureTab(tab.id, { rect: rect });
   // console.log(imgURI) // DEBUG
-  const arrBuffer = await dataUrlToArrayBuffer(imgURI)
+  const arrBuffer = await dataUrlToArrayBuffer(imgURI);
   // console.log(arrBuffer) // DEBUG
   const url = await uriToURL(imgURI);
   // console.log(url) // DEBUG
   try {
-    filename = stringToFilename(term + " Schedule"); // term string should already be a valid filename, but parse it just in case
-    filename += ".png"
+    filename = stringToFilename(term + ' Schedule'); // term string should already be a valid filename, but parse it just in case
+    filename += '.png';
     // console.log(filename) // DEBUG
     last_image = {
       url: url,
       filename: filename,
       arrBuffer: arrBuffer,
-    }
+    };
     // console.log(last_image) // DEBUG
   } catch (e) {
-    throw new Error(e) // do this so that the promise is rejected
+    throw new Error(e); // do this so that the promise is rejected
   }
 }
 
 browser.runtime.onMessage.addListener((data, sender, sendResponse) => {
   switch (data.msgType) {
-    case "screenshot":
-      screenshot(data.tab, data.rect, data.term)
-      .then(() => { sendResponse() }, (error) => { console.error(error) } )
-      break
-    case "download":
+    case 'screenshot':
+      screenshot(data.tab, data.rect, data.term).then(
+        () => {
+          sendResponse();
+        },
+        (error) => {
+          console.error(error);
+        }
+      );
+      break;
+    case 'download':
       if (last_image) {
-        browser.downloads.download({ url: last_image.url, filename: last_image.filename, saveAs: true })
-        .then((downloadId) => { sendResponse() }, (error) => { console.error(error) } )
+        browser.downloads
+          .download({
+            url: last_image.url,
+            filename: last_image.filename,
+            saveAs: true,
+          })
+          .then(
+            (downloadId) => {
+              sendResponse();
+            },
+            (error) => {
+              console.error(error);
+            }
+          );
       }
-      break
-    case "copy": 
+      break;
+    case 'copy':
       if (last_image) {
-        browser.clipboard.setImageData(last_image.arrBuffer, "png")
-        .then(() => { sendResponse() }, (error) => { console.error(error) } )
-        return true
+        browser.clipboard.setImageData(last_image.arrBuffer, 'png').then(
+          () => {
+            sendResponse();
+          },
+          (error) => {
+            console.error(error);
+          }
+        );
+        return true;
       }
-      break
-    case "checkIfImgExists":
+      break;
+    case 'checkIfImgExists':
       if (last_image) {
-        sendResponse({response: true})
+        sendResponse({ response: true });
       } else {
-        sendResponse({response: false})
+        sendResponse({ response: false });
       }
-      break
+      break;
     default:
-      throw new Error(`Invalid message data: ${data} (sent by ${sender})`)
+      throw new Error(`Invalid message data: ${data} (sent by ${sender})`);
   }
 });
