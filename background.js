@@ -39,8 +39,7 @@ async function screenshot(tab, rect, term) {
   const url = await uriToURL(imgURI);
   // console.log(url) // DEBUG
   try {
-    filename = stringToFilename(term + ' Schedule'); // term string should already be a valid filename, but parse it just in case
-    filename += '.png';
+    const filename = stringToFilename(term + ' Schedule') + '.png'; // term string should already be a valid filename, but parse it just in case
     // console.log(filename) // DEBUG
     last_image = {
       url: url,
