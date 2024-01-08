@@ -21,11 +21,15 @@ const scheduleURLs = new Set([
 
 const screenshotBtn = document.getElementById("screenshot")
 const screenshotNotifBtn = document.getElementById("screenshot-notif")
-const downloadBtn = document.getElementById("download")
-const copyBtn = document.getElementById("copy")
 
-const screenshotNotifAnimation = [ { opacity: "1" }, { opacity: "0" }, ];
-const screenshotNotifTiming = { duration: 1000, iterations: 1, };
+const downloadBtn = document.getElementById("download")
+const downloadNotifBtn = document.getElementById("download-notif")
+
+const copyBtn = document.getElementById("copy")
+const copyNotifBtn = document.getElementById("copy-notif")
+
+const notifAnimation = [ { opacity: "1" }, { opacity: "0" }, ];
+const notifTiming = { duration: 1000, iterations: 1, };
 
 const enablingButtonAnimation = [ { filter: "grayscale(0%) brightness(1.0)" }, ]
 const enablingButtonTiming = { duration: 150, iterations: 1, };
@@ -105,30 +109,50 @@ async function getScreenshotData() {
   })
 }
 
+function animateButtonNotif(btn) {
+  let notifBtn
+  switch (btn.id) {
+    case "screenshot": notifBtn = screenshotNotifBtn; break;
+    case "download": notifBtn = downloadNotifBtn; break;
+    case "copy": notifBtn = copyNotifBtn; break;
+    default: throw Error(`Button ${btn} is not a valid button.`)
+  }
+  notifBtn.style.display = 'unset'
+  const notifDisappearing = notifBtn.animate(notifAnimation, notifTiming)
+  notifDisappearing.onfinish = (event) => { notifBtn.style.display = 'none' }
+}
+
 // Main code
 screenshotBtn
 .addEventListener("click", getScreenshotData)
 
 downloadBtn
-.addEventListener("click", () => browser.runtime.sendMessage({ // send message to background script so it can download the screenshot
-  msgType: "download"
-}))
+.addEventListener("click", () => {
+  const sending = browser.runtime.sendMessage({ // send message to background script so it can download the screenshot
+    msgType: "download"
+  })
+  sending.then(() => {
+    animateButtonNotif(downloadBtn)
+  }, (e) => console.error(e))
+})
 
 copyBtn
-.addEventListener("click", () => browser.runtime.sendMessage({ // send message to background script so it can copy the screenshot
-  msgType: "copy"
-}))
+.addEventListener("click", () => {
+  const sending = browser.runtime.sendMessage({ // send message to background script so it can copy the screenshot
+    msgType: "copy"
+  })
+  sending.then(() => {
+    animateButtonNotif(copyBtn)
+  }, (e) => console.error(e))
+})
 
 browser.runtime.onMessage.addListener((data) => {
   if (Object.hasOwn(data, "msgType")) {
     if (data.msgType === "screenshotTaken") { // after a screenshot is taken, enable downloading/copying
-      screenshotNotifBtn.style.display = 'unset'
+      animateButtonNotif(screenshotBtn)
 
-      const screenshotNotifDisappearing = screenshotNotifBtn.animate(screenshotNotifAnimation, screenshotNotifTiming)
       const downloadBtnEnabling = downloadBtn.animate(enablingButtonAnimation, enablingButtonTiming)
       const copyBtnEnabling = copyBtn.animate(enablingButtonAnimation, enablingButtonTiming)
-      
-      screenshotNotifDisappearing.onfinish = (event) => { screenshotNotifBtn.style.display = 'none' }
       downloadBtnEnabling.onfinish = (event) => { downloadBtn.disabled = false }
       copyBtnEnabling.onfinish = (event) => { copyBtn.disabled = false }
     }

@@ -7,8 +7,9 @@ be able to restrict the extension to just requiring host permissions for the spe
 - [ ] Finish writing README
 
 ## 🛠 In Progress
-- [ ] Add visual indication of successful copy and download (similar to the screenshot checkmark)
+
 
 ## ✔ Done
 - [x] Properly attribute UI icons (see https://github.com/google/material-design-icons, at the bottom of the README)
 - [x] Make copy button work
+- [x] Add visual indication of successful copy and download (similar to the screenshot checkmark)

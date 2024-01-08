@@ -48,13 +48,24 @@ button:disabled {
   filter: grayscale(80%) brightness(0.4);
 }
 
-#screenshot-notif {
+.notif {
   display: none;
   background: white;
   position: absolute;
+}
+
+.notif:disabled {
+  filter: revert;
+}
+
+#screenshot-notif {
   top: 0;
 }
 
-#screenshot-notif:disabled {
-  filter: revert;
+#download-notif {
+  top: 3.25em;
+}
+
+#copy-notif {
+  top: 6.5em;
 }
